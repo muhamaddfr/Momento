@@ -14,7 +14,9 @@ export function getLocalDateString(date = new Date()) {
  */
 export function formatReadableDate(dateString) {
   if (!dateString) return '';
-  const date = new Date(dateString);
+  // Parse manual agar tidak terjadi offset UTC → lokal yang geser tanggal
+  const [year, month, day] = dateString.split('-').map(Number);
+  const date = new Date(year, month - 1, day);
   
   // Opsi lokal bahasa Indonesia
   const options = { 

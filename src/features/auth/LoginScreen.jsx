@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { stretchPinToPassword } from '../../shared/utils/helpers';
 import { Mail, Lock, Hourglass, CheckCircle, ArrowRight, Loader, KeyRound } from 'lucide-react';

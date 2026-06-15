@@ -1,4 +1,3 @@
-import React from 'react';
 import { Home, Calendar, Sparkles, User } from 'lucide-react';
 
 export default function NavigationBar({ activeTab, setActiveTab }) {

@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { supabase } from '../../config/supabase';
-import PhotoCard from '../../shared/widgets/PhotoCard';
-import { Calendar, RefreshCw, FilePlus, Loader } from 'lucide-react';
+import { formatReadableDate } from '../../shared/utils/helpers';
+import { Calendar, RefreshCw, FilePlus, Loader, ChevronDown, ChevronUp } from 'lucide-react';
 
 const PAGE_SIZE = 10;
 
@@ -13,6 +13,14 @@ export default function TimelineScreen({ setActiveTab }) {
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(false);
   const [page, setPage] = useState(0);
+  const [expandedEntries, setExpandedEntries] = useState({});
+
+  const toggleExpand = (id) => {
+    setExpandedEntries((prev) => ({
+      ...prev,
+      [id]: !prev[id],
+    }));
+  };
 
   const fetchEntries = async (reset = false) => {
     if (!user) return;
@@ -33,7 +41,7 @@ export default function TimelineScreen({ setActiveTab }) {
         .from('entries')
         .select('*', { count: 'exact' })
         .eq('user_id', user.id)
-        .not('is_sample', 'eq', true)
+        .or('is_sample.eq.false,is_sample.is.null')
         .order('date', { ascending: false })
         .range(from, to);
 
@@ -56,7 +64,11 @@ export default function TimelineScreen({ setActiveTab }) {
   };
 
   useEffect(() => {
-    fetchEntries(true);
+    const load = async () => {
+      await fetchEntries(true);
+    };
+    load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   return (
@@ -111,9 +123,60 @@ export default function TimelineScreen({ setActiveTab }) {
         ) : (
           /* DAFTAR CARD JURNAL KRONOLOGIS */
           <div style={styles.listWrapper}>
-            {entries.map((entry) => (
-              <PhotoCard key={entry.id} entry={entry} />
-            ))}
+            {entries.map((entry) => {
+              const isExpanded = !!expandedEntries[entry.id];
+              return (
+                <div 
+                  key={entry.id} 
+                  className="glass-panel" 
+                  style={styles.timelineItem}
+                >
+                  {/* Row Header - Selalu Tampil */}
+                  <div 
+                    onClick={() => toggleExpand(entry.id)} 
+                    style={styles.itemHeader}
+                  >
+                    <div style={styles.headerLeft}>
+                      <img 
+                        src={entry.photo_url} 
+                        alt="thumbnail" 
+                        style={styles.miniThumbnail} 
+                      />
+                      <div style={styles.dateAndCaption}>
+                        <div style={styles.dateRow}>
+                          <span style={styles.moodEmoji}>{entry.mood || '😊'}</span>
+                          <span style={styles.itemDate}>{formatReadableDate(entry.date)}</span>
+                        </div>
+                        {!isExpanded && (
+                          <p style={styles.captionTeaser}>{entry.caption}</p>
+                        )}
+                      </div>
+                    </div>
+                    <div style={styles.headerRight}>
+                      {isExpanded ? (
+                        <ChevronUp size={18} color="var(--text-secondary)" />
+                      ) : (
+                        <ChevronDown size={18} color="var(--text-secondary)" />
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Konten Detail saat Diekspansi */}
+                  {isExpanded && (
+                    <div className="animate-fade-in" style={styles.expandedContent}>
+                      <div style={styles.imageWrapper}>
+                        <img 
+                          src={entry.photo_url} 
+                          alt={entry.caption} 
+                          style={styles.expandedImage} 
+                        />
+                      </div>
+                      <p style={styles.expandedCaption}>{entry.caption}</p>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
 
             {/* Tombol Load More */}
             {hasMore && (
@@ -248,6 +311,101 @@ const styles = {
     display: 'flex',
     flexDirection: 'column',
     width: '100%',
+  },
+  timelineItem: {
+    width: '100%',
+    borderRadius: '20px',
+    marginBottom: '12px',
+    overflow: 'hidden',
+    borderBottom: 'none',
+    transition: 'all 0.25s ease',
+  },
+  itemHeader: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: '12px 14px',
+    cursor: 'pointer',
+    userSelect: 'none',
+  },
+  headerLeft: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '12px',
+    flex: 1,
+    overflow: 'hidden',
+  },
+  miniThumbnail: {
+    width: '42px',
+    height: '42px',
+    borderRadius: '10px',
+    objectFit: 'cover',
+    backgroundColor: 'rgba(0, 0, 0, 0.2)',
+    flexShrink: 0,
+  },
+  dateAndCaption: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '2px',
+    overflow: 'hidden',
+    flex: 1,
+  },
+  dateRow: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '6px',
+  },
+  moodEmoji: {
+    fontSize: '16px',
+    lineHeight: '1',
+  },
+  itemDate: {
+    fontSize: '13px',
+    fontWeight: '700',
+    color: 'var(--text-primary)',
+  },
+  captionTeaser: {
+    fontSize: '11px',
+    color: 'var(--text-secondary)',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    width: '100%',
+  },
+  headerRight: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingLeft: '8px',
+  },
+  expandedContent: {
+    padding: '0 14px 16px 14px',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '12px',
+  },
+  imageWrapper: {
+    width: '100%',
+    position: 'relative',
+    paddingTop: '100%',
+    borderRadius: '14px',
+    overflow: 'hidden',
+    backgroundColor: 'rgba(0, 0, 0, 0.2)',
+  },
+  expandedImage: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    width: '100%',
+    height: '100%',
+    objectFit: 'cover',
+  },
+  expandedCaption: {
+    fontSize: '13px',
+    color: 'var(--text-primary)',
+    lineHeight: '1.6',
+    whiteSpace: 'pre-wrap',
+    padding: '4px 2px 0 2px',
   },
   loadMoreBtn: {
     width: '100%',

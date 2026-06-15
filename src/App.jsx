@@ -1,7 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import LoginScreen from './features/auth/LoginScreen';
-import PinLockScreen from './features/auth/PinLockScreen';
 import HomeScreen from './features/home/HomeScreen';
 import TimelineScreen from './features/timeline/TimelineScreen';
 import FlashbackScreen from './features/flashback/FlashbackScreen';
@@ -20,10 +19,6 @@ function AppContent() {
     return localStorage.getItem('momento-theme') || 'system';
   });
 
-  // Kunci PIN Aplikasi
-  const [isUnlocked, setIsUnlocked] = useState(false);
-  const savedPin = user?.user_metadata?.pin_code;
-
   // Sinkronisasi tema secara global ke dokumen HTML saat pertama kali dimuat & saat berubah
   useEffect(() => {
     const root = document.documentElement;
@@ -35,19 +30,6 @@ function AppContent() {
     localStorage.setItem('momento-theme', theme);
   }, [theme]);
 
-  // Efek untuk memvalidasi status Kunci PIN ketika user login/logout/ubah pin
-  useEffect(() => {
-    if (!user) {
-      setIsUnlocked(false);
-    } else if (!savedPin) {
-      // Jika pengguna belum menyetel PIN, lewati layar kunci
-      setIsUnlocked(true);
-    } else {
-      // Jika ada PIN, kunci aplikasi saat awal dimuat/refresh
-      setIsUnlocked(false);
-    }
-  }, [user, savedPin]);
-
   // Listener untuk instalasi PWA
   useEffect(() => {
     const handleBeforeInstallPrompt = (e) => {
@@ -58,27 +40,23 @@ function AppContent() {
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
 
-    if (window.matchMedia('(display-mode: standalone)').matches) {
-      setShowInstallBanner(false);
-    }
-
     return () => {
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
     };
   }, []);
 
-  // Sinkronisasi kelas layout ke #root (mencegah scroll di halaman login/lock screen/loading)
+  // Sinkronisasi kelas layout ke #root (mencegah scroll di halaman login/loading)
   useEffect(() => {
     const rootEl = document.getElementById('root');
     if (rootEl) {
-      const isAuthMode = loading || !user || (savedPin && !isUnlocked);
+      const isAuthMode = loading || !user;
       if (isAuthMode) {
         rootEl.classList.add('auth-mode');
       } else {
         rootEl.classList.remove('auth-mode');
       }
     }
-  }, [loading, user, savedPin, isUnlocked]);
+  }, [loading, user]);
 
   const handleInstallClick = async () => {
     if (!deferredPrompt) return;
@@ -102,10 +80,7 @@ function AppContent() {
     return <LoginScreen />;
   }
 
-  // Tampilkan layar kunci PIN jika user sudah login tetapi aplikasi masih terkunci
-  if (savedPin && !isUnlocked) {
-    return <PinLockScreen savedPin={savedPin} onUnlock={() => setIsUnlocked(true)} />;
-  }
+
 
   // Render layar sesuai tab aktif
   const renderScreen = () => {

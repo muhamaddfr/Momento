@@ -1,8 +1,8 @@
-import React, { useState, useRef } from 'react';
+import { useState, useRef } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { supabase } from '../../config/supabase';
 import { getLocalDateString, compressImage } from '../../shared/utils/helpers';
-import { X, Camera, Smile, Type, UploadCloud, Loader, Check } from 'lucide-react';
+import { X, Camera, Smile, Type, Loader, Check } from 'lucide-react';
 
 const MOODS = [
   { emoji: '😎', label: 'Cool' },
@@ -26,6 +26,30 @@ export default function UploadSheet({ isOpen, onClose, onSuccess }) {
   const fileInputRef = useRef(null);
 
   if (!isOpen) return null;
+
+  const handleClose = () => {
+    if (uploading) return;
+    // Reset semua state saat sheet ditutup
+    setImage(null);
+    setImagePreview('');
+    setCaption('');
+    setSelectedMood('😊');
+    setErrorMsg('');
+    setProgressText('');
+    onClose();
+  };
+
+  // Versi handleClose yang dipanggil setelah upload sukses (uploading masih true)
+  const handleCloseAfterSuccess = () => {
+    setUploading(false);
+    setImage(null);
+    setImagePreview('');
+    setCaption('');
+    setSelectedMood('😊');
+    setErrorMsg('');
+    setProgressText('');
+    onClose();
+  };
 
   const handleImageChange = (e) => {
     const file = e.target.files[0];
@@ -83,10 +107,11 @@ export default function UploadSheet({ isOpen, onClose, onSuccess }) {
 
       if (uploadError) throw uploadError;
 
-      // 3. Dapatkan Public URL foto
+      // 3. Dapatkan Public URL foto + cache-bust agar foto baru langsung tampil
       const { data: { publicUrl } } = supabase.storage
         .from('photos')
         .getPublicUrl(filePath);
+      const cacheBustedUrl = `${publicUrl}?t=${Date.now()}`;
 
       // 4. Catat entri baru ke Firestore/Supabase Database
       setProgressText('Menyimpan catatan jurnal...');
@@ -96,8 +121,9 @@ export default function UploadSheet({ isOpen, onClose, onSuccess }) {
           user_id: user.id,
           date: todayStr,
           caption: caption,
-          photo_url: publicUrl,
+          photo_url: cacheBustedUrl,
           mood: selectedMood,
+          is_sample: false,
         });
 
       if (dbError) {
@@ -108,9 +134,9 @@ export default function UploadSheet({ isOpen, onClose, onSuccess }) {
         throw dbError;
       }
 
-      setUploading(false);
+      // Tutup sheet dulu, baru trigger refresh — hindari race condition
+      handleCloseAfterSuccess();
       onSuccess();
-      onClose();
     } catch (error) {
       console.error('Error saat menyimpan jurnal harian:', error);
       const detailMsg = error.message || (typeof error === 'string' ? error : JSON.stringify(error));
@@ -120,7 +146,7 @@ export default function UploadSheet({ isOpen, onClose, onSuccess }) {
   };
 
   return (
-    <div style={styles.overlay} onClick={onClose}>
+    <div style={styles.overlay} onClick={handleClose}>
       <div 
         className="glass-panel animate-slide-up" 
         style={styles.sheet} 
@@ -129,7 +155,7 @@ export default function UploadSheet({ isOpen, onClose, onSuccess }) {
         {/* Header Panel */}
         <div style={styles.header}>
           <h3 style={styles.headerTitle}>Catat Hari Ini</h3>
-          <button onClick={onClose} style={styles.closeBtn} disabled={uploading}>
+          <button onClick={handleClose} style={styles.closeBtn} disabled={uploading}>
             <X size={20} color="#94a3b8" />
           </button>
         </div>

@@ -1,16 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { supabase } from '../../config/supabase';
 import { getLocalDateString } from '../../shared/utils/helpers';
 import PhotoCard from '../../shared/widgets/PhotoCard';
-import { Sparkles, Clock, Calendar, Loader, PlusCircle } from 'lucide-react';
+import { Sparkles, Clock, Loader, PlusCircle } from 'lucide-react';
 
 export default function FlashbackScreen() {
   const { user } = useAuth();
   const [flashbackEntry, setFlashbackEntry] = useState(null);
   const [loading, setLoading] = useState(true);
   const [creatingSample, setCreatingSample] = useState(false);
-  const [hasOtherEntries, setHasOtherEntries] = useState(false);
 
   // Dapatkan tanggal tepat 1 tahun yang lalu
   const getOneYearAgoDateString = () => {
@@ -31,22 +30,15 @@ export default function FlashbackScreen() {
         .select('*')
         .eq('user_id', user.id)
         .eq('date', oneYearAgoStr)
-        .maybeSingle();
+        .order('created_at', { ascending: false })
+        .limit(1);
 
       if (error) throw error;
 
-      if (data) {
-        setFlashbackEntry(data);
+      if (data && data.length > 0) {
+        setFlashbackEntry(data[0]);
       } else {
         setFlashbackEntry(null);
-        // 2. Periksa apakah user memiliki entri lain di masa lalu (untuk menentukan UI bantuan)
-        const { count, error: countError } = await supabase
-          .from('entries')
-          .select('id', { count: 'exact', head: true })
-          .eq('user_id', user.id);
-
-        if (countError) throw countError;
-        setHasOtherEntries(count > 0);
       }
     } catch (error) {
       console.error('Error fetching flashback:', error.message);
@@ -102,7 +94,11 @@ export default function FlashbackScreen() {
   };
 
   useEffect(() => {
-    fetchFlashback();
+    const load = async () => {
+      await fetchFlashback();
+    };
+    load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   return (

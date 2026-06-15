@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { supabase } from '../../config/supabase';
 import { calculateStreak, stretchPinToPassword } from '../../shared/utils/helpers';
 import { 
   User, LogOut, Info, Bell, Loader, Heart, 
-  Edit3, Check, X, Sun, Moon, Laptop, Lock
+  Edit3, Check, X, Sun, Moon, Laptop, Lock, Clock as ClockIcon
 } from 'lucide-react';
 
 export default function ProfileScreen({ theme, setTheme }) {
@@ -14,23 +14,23 @@ export default function ProfileScreen({ theme, setTheme }) {
   const [loadingStats, setLoadingStats] = useState(true);
 
   // States untuk edit username
-  const [displayName, setDisplayName] = useState('');
+  const [displayName, setDisplayName] = useState(() => user?.user_metadata?.display_name || user?.email?.split('@')[0] || 'Teman');
   const [isEditingUsername, setIsEditingUsername] = useState(false);
-  const [usernameInput, setUsernameInput] = useState('');
+  const [usernameInput, setUsernameInput] = useState(() => user?.user_metadata?.display_name || user?.email?.split('@')[0] || 'Teman');
   const [savingUsername, setSavingUsername] = useState(false);
 
   // States untuk pengaturan waktu pengingat harian & flashback
-  const [reminderTime, setReminderTime] = useState('20:00');
-  const [flashbackTime, setFlashbackTime] = useState('07:00');
+  const [reminderTime, setReminderTime] = useState(() => user?.user_metadata?.reminder_time || '20:00');
+  const [flashbackTime, setFlashbackTime] = useState(() => user?.user_metadata?.flashback_time || '07:00');
 
   // States untuk Kunci PIN Aplikasi
-  const [pinCode, setPinCode] = useState('');
+  const [pinCode, setPinCode] = useState(() => user?.user_metadata?.pin_code || '');
   const [pinInput, setPinInput] = useState('');
   const [isSettingPin, setIsSettingPin] = useState(false);
   const [savingPin, setSavingPin] = useState(false);
   const [pinError, setPinError] = useState('');
 
-  // Load awal data statistik, username, PIN, & setelan notifikasi dari user metadata
+  // Load awal data statistik dari user metadata
   useEffect(() => {
     const fetchUserStats = async () => {
       if (!user) return;
@@ -39,7 +39,7 @@ export default function ProfileScreen({ theme, setTheme }) {
           .from('entries')
           .select('date')
           .eq('user_id', user.id)
-          .not('is_sample', 'eq', true);
+          .or('is_sample.eq.false,is_sample.is.null');
 
         if (error) throw error;
 
@@ -57,15 +57,6 @@ export default function ProfileScreen({ theme, setTheme }) {
     };
 
     fetchUserStats();
-
-    // Set nama & setelan dari metadata user
-    const name = user?.user_metadata?.display_name || user?.email?.split('@')[0] || 'Teman';
-    setDisplayName(name);
-    setUsernameInput(name);
-    
-    setReminderTime(user?.user_metadata?.reminder_time || '20:00');
-    setFlashbackTime(user?.user_metadata?.flashback_time || '07:00');
-    setPinCode(user?.user_metadata?.pin_code || '');
   }, [user]);
 
   // Simpan perubahan username ke Supabase Auth
@@ -356,7 +347,7 @@ export default function ProfileScreen({ theme, setTheme }) {
           /* Menu Opsi jika PIN sudah Aktif */
           <div style={styles.pinActiveActions}>
             <p style={styles.pinDescText}>
-              Aplikasi terkunci secara aman. Layar PIN akan muncul setiap kali Momento dibuka kembali.
+              PIN Masuk Cepat Anda aktif. Anda sekarang dapat masuk ke akun Anda dari perangkat mana saja secara instan menggunakan Email + PIN di halaman login.
             </p>
             <div style={styles.pinActionsRow}>
               <button onClick={() => setIsSettingPin(true)} className="btn-secondary" style={styles.pinActionBtn}>
@@ -371,10 +362,10 @@ export default function ProfileScreen({ theme, setTheme }) {
           /* Tampilan jika PIN belum Aktif */
           <div style={styles.pinDeactiveActions}>
             <p style={styles.pinDescText}>
-              Lindungi privasi tulisan harian Anda dari orang lain dengan mengaktifkan pengunci PIN saat aplikasi dibuka.
+              Masuk lebih cepat tanpa menunggu email! Aktifkan PIN 4-digit agar Anda dapat langsung masuk ke jurnal Anda menggunakan Email + PIN di halaman depan.
             </p>
             <button onClick={() => setIsSettingPin(true)} className="btn-primary" style={styles.pinActivateBtn}>
-              Aktifkan PIN Pengunci
+              Aktifkan PIN Masuk Cepat
             </button>
           </div>
         )}
@@ -451,14 +442,6 @@ export default function ProfileScreen({ theme, setTheme }) {
     </div>
   );
 }
-
-// Ikon Clock kustom
-const ClockIcon = ({ size, color }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <circle cx="12" cy="12" r="10" />
-    <polyline points="12 6 12 12 16 14" />
-  </svg>
-);
 
 const styles = {
   container: {

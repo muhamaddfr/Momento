@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { formatReadableDate } from '../utils/helpers';
-import { Calendar, Smile } from 'lucide-react';
+import { Calendar } from 'lucide-react';
 
 export default function PhotoCard({ entry }) {
   const { date, caption, photo_url, mood } = entry;
