@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { getLocalDateString, formatReadableDate, calculateStreak } from './helpers';
+import { getLocalDateString, formatReadableDate, calculateStreak, stretchPinToPassword } from './helpers';
 
 describe('Utilitas helpers.js', () => {
   
@@ -81,6 +81,25 @@ describe('Utilitas helpers.js', () => {
       const yesterday = getDateWithOffset(1);
       
       expect(calculateStreak([today, today, yesterday, yesterday])).toBe(2);
+    });
+  });
+
+  describe('stretchPinToPassword', () => {
+    it('harus meregangkan PIN dengan email menjadi password di atas 6 karakter', () => {
+      const stretched = stretchPinToPassword('user@domain.com', '1234');
+      expect(stretched).toBe('momento_secure_pin_user@domain.com_1234');
+      expect(stretched.length).toBeGreaterThan(6);
+    });
+
+    it('harus menangani whitespace dan huruf kapital pada email secara seragam', () => {
+      const stretched = stretchPinToPassword(' USER@Domain.com ', ' 5678 ');
+      expect(stretched).toBe('momento_secure_pin_user@domain.com_5678');
+    });
+
+    it('harus mengembalikan string kosong jika input email atau PIN kosong', () => {
+      expect(stretchPinToPassword('', '1234')).toBe('');
+      expect(stretchPinToPassword('email@domain.com', '')).toBe('');
+      expect(stretchPinToPassword(null, null)).toBe('');
     });
   });
 });

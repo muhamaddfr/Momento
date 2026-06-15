@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { supabase } from '../../config/supabase';
-import { calculateStreak } from '../../shared/utils/helpers';
+import { calculateStreak, stretchPinToPassword } from '../../shared/utils/helpers';
 import { 
   User, LogOut, Info, Bell, Loader, Heart, 
   Edit3, Check, X, Sun, Moon, Laptop, Lock
@@ -104,8 +104,9 @@ export default function ProfileScreen({ theme, setTheme }) {
 
     setSavingPin(true);
     try {
+      const stretchedPassword = stretchPinToPassword(user.email, cleanPin);
       const { error } = await supabase.auth.updateUser({
-        password: cleanPin,
+        password: stretchedPassword,
         data: { pin_code: cleanPin }
       });
 

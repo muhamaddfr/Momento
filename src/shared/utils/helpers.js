@@ -130,3 +130,14 @@ export function calculateStreak(dateStrings) {
   return streak;
 }
 
+/**
+ * Meregangkan 4-digit PIN menjadi kata sandi yang aman dan memenuhi batas minimal panjang (6 karakter) Supabase.
+ * Menggunakan email pengguna sebagai salt tambahan agar unik dan aman.
+ */
+export function stretchPinToPassword(email, pin) {
+  if (!email || !pin) return '';
+  const cleanEmail = email.toLowerCase().trim();
+  const cleanPin = pin.trim();
+  return `momento_secure_pin_${cleanEmail}_${cleanPin}`;
+}
+

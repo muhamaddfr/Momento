@@ -113,7 +113,8 @@ export default function UploadSheet({ isOpen, onClose, onSuccess }) {
       onClose();
     } catch (error) {
       console.error('Error saat menyimpan jurnal harian:', error);
-      setErrorMsg(error.message || 'Terjadi kesalahan saat mengunggah. Coba lagi.');
+      const detailMsg = error.message || (typeof error === 'string' ? error : JSON.stringify(error));
+      setErrorMsg(`Gagal menyimpan: ${detailMsg}. Silakan pastikan bucket "photos" telah dibuat di Supabase Storage dan policy RLS-nya sudah diaktifkan sesuai panduan README.`);
       setUploading(false);
     }
   };

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
+import { stretchPinToPassword } from '../../shared/utils/helpers';
 import { Mail, Lock, Hourglass, CheckCircle, ArrowRight, Loader, KeyRound } from 'lucide-react';
 
 export default function LoginScreen() {
@@ -54,7 +55,8 @@ export default function LoginScreen() {
     setErrorMsg('');
 
     try {
-      const { success, error } = await signInWithPassword(email, pin);
+      const stretchedPassword = stretchPinToPassword(email, pin);
+      const { success, error } = await signInWithPassword(email, stretchedPassword);
       if (!success) {
         // Jika gagal login, beri pesan ramah (mungkin belum setel PIN)
         if (error && error.includes('Invalid login credentials')) {
