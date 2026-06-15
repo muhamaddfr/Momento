@@ -6,6 +6,8 @@ const AuthContext = createContext({
   session: null,
   loading: true,
   signInWithOtp: async () => {},
+  signInWithPassword: async () => {},
+  signUpWithPassword: async () => {},
   signOut: async () => {},
 });
 
@@ -40,7 +42,6 @@ export const AuthProvider = ({ children }) => {
       const { error } = await supabase.auth.signInWithOtp({
         email,
         options: {
-          // Arahkan kembali ke URL asal (localhost saat development, atau domain Vercel saat production)
           emailRedirectTo: window.location.origin,
         },
       });
@@ -48,6 +49,36 @@ export const AuthProvider = ({ children }) => {
       return { success: true, error: null };
     } catch (error) {
       console.error('Error saat login Magic Link:', error.message);
+      return { success: false, error: error.message };
+    }
+  };
+
+  // Login dengan Email & Password (bypasses email rate limits)
+  const signInWithPassword = async (email, password) => {
+    try {
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+      if (error) throw error;
+      return { success: true, error: null };
+    } catch (error) {
+      console.error('Error saat login password:', error.message);
+      return { success: false, error: error.message };
+    }
+  };
+
+  // Daftar dengan Email & Password
+  const signUpWithPassword = async (email, password) => {
+    try {
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+      });
+      if (error) throw error;
+      return { success: true, error: null };
+    } catch (error) {
+      console.error('Error saat daftar password:', error.message);
       return { success: false, error: error.message };
     }
   };
@@ -67,6 +98,8 @@ export const AuthProvider = ({ children }) => {
     session,
     loading,
     signInWithOtp,
+    signInWithPassword,
+    signUpWithPassword,
     signOut,
   };
 

@@ -4,7 +4,7 @@ import { supabase } from '../../config/supabase';
 import { calculateStreak } from '../../shared/utils/helpers';
 import { 
   User, LogOut, Info, Bell, Loader, Heart, 
-  Edit3, Check, X, Sun, Moon, Laptop 
+  Edit3, Check, X, Sun, Moon, Laptop, Lock
 } from 'lucide-react';
 
 export default function ProfileScreen({ theme, setTheme }) {
@@ -23,12 +23,18 @@ export default function ProfileScreen({ theme, setTheme }) {
   const [reminderTime, setReminderTime] = useState('20:00');
   const [flashbackTime, setFlashbackTime] = useState('07:00');
 
-  // Load awal data statistik, username & setelan notifikasi dari user metadata
+  // States untuk Kunci PIN Aplikasi
+  const [pinCode, setPinCode] = useState('');
+  const [pinInput, setPinInput] = useState('');
+  const [isSettingPin, setIsSettingPin] = useState(false);
+  const [savingPin, setSavingPin] = useState(false);
+  const [pinError, setPinError] = useState('');
+
+  // Load awal data statistik, username, PIN, & setelan notifikasi dari user metadata
   useEffect(() => {
     const fetchUserStats = async () => {
       if (!user) return;
       try {
-        // Ambil semua entri asli (is_sample bukan true) untuk menghitung total & streak
         const { data, error } = await supabase
           .from('entries')
           .select('date')
@@ -52,13 +58,14 @@ export default function ProfileScreen({ theme, setTheme }) {
 
     fetchUserStats();
 
-    // Set nama & setelan pengingat dari metadata user
+    // Set nama & setelan dari metadata user
     const name = user?.user_metadata?.display_name || user?.email?.split('@')[0] || 'Teman';
     setDisplayName(name);
     setUsernameInput(name);
     
     setReminderTime(user?.user_metadata?.reminder_time || '20:00');
     setFlashbackTime(user?.user_metadata?.flashback_time || '07:00');
+    setPinCode(user?.user_metadata?.pin_code || '');
   }, [user]);
 
   // Simpan perubahan username ke Supabase Auth
@@ -80,6 +87,63 @@ export default function ProfileScreen({ theme, setTheme }) {
       alert('Gagal memperbarui username: ' + error.message);
     } finally {
       setSavingUsername(false);
+    }
+  };
+
+  // Simpan/Aktifkan PIN Baru
+  const handleSavePin = async (e) => {
+    e.preventDefault();
+    setPinError('');
+
+    // Validasi input PIN harus 4 digit angka
+    const cleanPin = pinInput.trim();
+    if (!/^\d{4}$/.test(cleanPin)) {
+      setPinError('PIN wajib berisi tepat 4 digit angka (0-9).');
+      return;
+    }
+
+    setSavingPin(true);
+    try {
+      const { error } = await supabase.auth.updateUser({
+        password: cleanPin,
+        data: { pin_code: cleanPin }
+      });
+
+      if (error) throw error;
+
+      setPinCode(cleanPin);
+      setIsSettingPin(false);
+      setPinInput('');
+    } catch (error) {
+      console.error('Error saving PIN:', error.message);
+      setPinError('Gagal menyimpan PIN: ' + error.message);
+    } finally {
+      setSavingPin(false);
+    }
+  };
+
+  // Matikan/Hapus Kunci PIN
+  const handleRemovePin = async () => {
+    if (!window.confirm('Apakah Anda yakin ingin menonaktifkan PIN Pengunci Aplikasi? Keamanan jurnal Anda akan berkurang.')) {
+      return;
+    }
+
+    setSavingPin(true);
+    try {
+      const { error } = await supabase.auth.updateUser({
+        data: { pin_code: null }
+      });
+
+      if (error) throw error;
+
+      setPinCode('');
+      setIsSettingPin(false);
+      setPinInput('');
+    } catch (error) {
+      console.error('Error removing PIN:', error.message);
+      alert('Gagal menonaktifkan PIN: ' + error.message);
+    } finally {
+      setSavingPin(false);
     }
   };
 
@@ -243,6 +307,76 @@ export default function ProfileScreen({ theme, setTheme }) {
             <span>Sistem</span>
           </button>
         </div>
+      </div>
+
+      {/* KUNCI PIN APLIKASI (MENU BARU) */}
+      <div className="glass-panel" style={styles.pinSection}>
+        <div style={styles.pinHeader}>
+          <div style={styles.pinTitleWrapper}>
+            <Lock size={18} color="var(--accent-primary)" />
+            <span style={styles.pinTitle}>Kunci PIN Aplikasi</span>
+          </div>
+          {pinCode && !isSettingPin && (
+            <span style={styles.pinActiveBadge}>
+              <Check size={12} color="#10b981" /> Aktif
+            </span>
+          )}
+        </div>
+
+        {isSettingPin ? (
+          /* Form Input PIN Baru */
+          <form onSubmit={handleSavePin} style={styles.pinForm}>
+            {pinError && <div style={styles.pinErrorAlert}>{pinError}</div>}
+            <div style={styles.pinInputRow}>
+              <input
+                type="password"
+                pattern="[0-9]*"
+                inputMode="numeric"
+                maxLength={4}
+                placeholder="4-digit PIN"
+                className="input-field"
+                style={styles.pinInput}
+                value={pinInput}
+                onChange={(e) => setPinInput(e.target.value.replace(/\D/g, ''))}
+                disabled={savingPin}
+                required
+                autoFocus
+              />
+              <button type="submit" className="btn-primary" style={styles.pinSaveBtn} disabled={savingPin || pinInput.length !== 4}>
+                {savingPin ? <Loader size={14} className="animate-spin" /> : 'Simpan'}
+              </button>
+              <button type="button" className="btn-secondary" style={styles.pinCancelBtn} onClick={() => { setIsSettingPin(false); setPinInput(''); setPinError(''); }} disabled={savingPin}>
+                Batal
+              </button>
+            </div>
+            <p style={styles.pinInputSubText}>Gunakan karakter angka (0-9) untuk mengunci layar masuk.</p>
+          </form>
+        ) : pinCode ? (
+          /* Menu Opsi jika PIN sudah Aktif */
+          <div style={styles.pinActiveActions}>
+            <p style={styles.pinDescText}>
+              Aplikasi terkunci secara aman. Layar PIN akan muncul setiap kali Momento dibuka kembali.
+            </p>
+            <div style={styles.pinActionsRow}>
+              <button onClick={() => setIsSettingPin(true)} className="btn-secondary" style={styles.pinActionBtn}>
+                Ubah PIN
+              </button>
+              <button onClick={handleRemovePin} className="btn-secondary" style={{ ...styles.pinActionBtn, color: 'var(--error)' }}>
+                Nonaktifkan PIN
+              </button>
+            </div>
+          </div>
+        ) : (
+          /* Tampilan jika PIN belum Aktif */
+          <div style={styles.pinDeactiveActions}>
+            <p style={styles.pinDescText}>
+              Lindungi privasi tulisan harian Anda dari orang lain dengan mengaktifkan pengunci PIN saat aplikasi dibuka.
+            </p>
+            <button onClick={() => setIsSettingPin(true)} className="btn-primary" style={styles.pinActivateBtn}>
+              Aktifkan PIN Pengunci
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Daftar Opsi / Settings */}
@@ -513,6 +647,108 @@ const styles = {
     fontWeight: '600',
     cursor: 'pointer',
     transition: 'all 0.2s ease',
+  },
+  pinSection: {
+    padding: '20px',
+    borderRadius: '24px',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '12px',
+    marginBottom: '20px',
+    borderBottom: 'none',
+  },
+  pinHeader: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  pinTitleWrapper: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+  },
+  pinTitle: {
+    fontSize: '13px',
+    fontWeight: '700',
+    color: 'var(--text-primary)',
+  },
+  pinActiveBadge: {
+    fontSize: '11px',
+    fontWeight: '700',
+    color: 'var(--success)',
+    background: 'rgba(16, 185, 129, 0.08)',
+    border: '1px solid rgba(16, 185, 129, 0.15)',
+    padding: '2px 8px',
+    borderRadius: '10px',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '4px',
+  },
+  pinForm: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '10px',
+    marginTop: '4px',
+  },
+  pinInputRow: {
+    display: 'flex',
+    gap: '8px',
+    alignItems: 'center',
+  },
+  pinInput: {
+    height: '38px',
+    textAlign: 'center',
+    letterSpacing: '0.25em',
+    fontWeight: '700',
+    fontSize: '16px',
+    padding: '0 10px',
+    maxWidth: '120px',
+  },
+  pinSaveBtn: {
+    height: '38px',
+    padding: '0 16px',
+    fontSize: '13px',
+  },
+  pinCancelBtn: {
+    height: '38px',
+    padding: '0 16px',
+    fontSize: '13px',
+  },
+  pinInputSubText: {
+    fontSize: '11px',
+    color: 'var(--text-muted)',
+  },
+  pinErrorAlert: {
+    color: 'var(--error)',
+    fontSize: '11px',
+    fontWeight: '600',
+  },
+  pinDescText: {
+    fontSize: '12px',
+    color: 'var(--text-secondary)',
+    lineHeight: '1.6',
+  },
+  pinActionsRow: {
+    display: 'flex',
+    gap: '12px',
+    marginTop: '6px',
+  },
+  pinActionBtn: {
+    flex: 1,
+    padding: '10px',
+    fontSize: '12px',
+    borderRadius: '12px',
+  },
+  pinDeactiveActions: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '12px',
+  },
+  pinActivateBtn: {
+    width: '100%',
+    padding: '12px',
+    fontSize: '13px',
+    borderRadius: '12px',
   },
   optionsList: {
     display: 'flex',
