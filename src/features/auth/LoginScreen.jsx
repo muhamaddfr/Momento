@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { stretchPinToPassword } from '../../shared/utils/helpers';
-import { Mail, Lock, Hourglass, CheckCircle, ArrowRight, Loader, KeyRound } from 'lucide-react';
+import { Mail, Lock, CheckCircle, ArrowRight, Loader, KeyRound } from 'lucide-react';
 
 export default function LoginScreen() {
   const { signInWithOtp, signInWithPassword } = useAuth();
@@ -76,8 +76,25 @@ export default function LoginScreen() {
     <div style={styles.container} className="animate-fade-in">
       {/* Logo Section */}
       <div style={styles.logoSection}>
-        <div style={styles.iconWrapper}>
-          <Hourglass size={48} color="#8b5cf6" className="animate-hourglass" />
+        <div style={styles.logoContainer}>
+          <div style={styles.iconWrapper}>
+            <svg xmlns="http://www.w3.org/2000/svg" width="38" height="38" viewBox="0 0 512 512" fill="none">
+              <defs>
+                <linearGradient id="logoGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stopColor="#c084fc" />
+                  <stop offset="100%" stopColor="#818cf8" />
+                </linearGradient>
+              </defs>
+              <g transform="translate(64, 64) scale(0.75)">
+                <path d="M20 20 H140 C140 20 140 70 100 80 C140 90 140 140 140 140 H20 C20 140 20 90 60 80 C20 70 20 20 20 20 Z" fill="none" stroke="url(#logoGrad)" strokeWidth="20" strokeLinejoin="round" strokeLinecap="round" />
+                <path d="M36 36 H124 C116 64 100 72 80 72 C60 72 44 64 36 36 Z" fill="url(#logoGrad)" opacity="0.8" />
+                <path d="M44 124 H116 C104 106 96 102 80 102 C64 102 56 106 44 124 Z" fill="url(#logoGrad)" opacity="0.8" />
+                <circle cx="80" cy="88" r="6" fill="#38bdf8" />
+                <circle cx="80" cy="98" r="4" fill="#38bdf8" />
+              </g>
+            </svg>
+          </div>
+          <div style={styles.logoRing}></div>
         </div>
         <h1 style={styles.title}>Momento</h1>
         <p style={styles.tagline}>"Simpan hari ini, temui kembali setahun nanti."</p>
@@ -283,19 +300,41 @@ const styles = {
   },
   logoSection: {
     textAlign: 'center',
-    marginBottom: '16px',
+    marginBottom: '20px',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+  },
+  logoContainer: {
+    position: 'relative',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: '10px',
   },
   iconWrapper: {
     display: 'inline-flex',
     alignItems: 'center',
     justifyContent: 'center',
-    width: '64px',
-    height: '64px',
-    borderRadius: '20px',
-    background: 'rgba(139, 92, 246, 0.08)',
-    border: '1px solid rgba(139, 92, 246, 0.15)',
-    marginBottom: '8px',
-    boxShadow: '0 0 20px rgba(139, 92, 246, 0.1)',
+    width: '72px',
+    height: '72px',
+    borderRadius: '22px',
+    background: 'linear-gradient(135deg, rgba(139, 92, 246, 0.15), rgba(99, 102, 241, 0.15))',
+    border: '1.5px solid rgba(168, 85, 247, 0.4)',
+    boxShadow: '0 0 25px rgba(168, 85, 247, 0.25), inset 0 0 12px rgba(168, 85, 247, 0.2)',
+    backdropFilter: 'blur(10px)',
+    zIndex: 2,
+    transition: 'all 0.4s ease',
+    animation: 'floatIcon 4s infinite ease-in-out',
+  },
+  logoRing: {
+    position: 'absolute',
+    width: '88px',
+    height: '88px',
+    borderRadius: '28px',
+    border: '1.5px dashed rgba(129, 140, 248, 0.3)',
+    animation: 'spinRing 20s infinite linear',
+    zIndex: 1,
   },
   title: {
     fontSize: '26px',

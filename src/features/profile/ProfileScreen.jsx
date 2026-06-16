@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
+import { usePWA } from '../../context/PWAContext';
 import { supabase } from '../../config/supabase';
 import { calculateStreak, stretchPinToPassword } from '../../shared/utils/helpers';
 import { 
@@ -9,6 +10,7 @@ import {
 
 export default function ProfileScreen({ theme, setTheme }) {
   const { user, signOut } = useAuth();
+  const { permissionStatus, requestNotificationPermission, triggerTestNotification } = usePWA();
   const [totalEntries, setTotalEntries] = useState(0);
   const [streak, setStreak] = useState(0);
   const [loadingStats, setLoadingStats] = useState(true);
@@ -425,6 +427,44 @@ export default function ProfileScreen({ theme, setTheme }) {
         </div>
       </div>
 
+      {/* Status Izin Notifikasi Sistem */}
+      <div className="glass-panel" style={styles.pwaStatusSection}>
+        <div style={styles.pwaStatusHeader}>
+          <Bell size={18} color="var(--accent-primary)" />
+          <span style={styles.pwaStatusTitle}>Status Notifikasi Perangkat</span>
+        </div>
+        <div style={styles.pwaStatusBody}>
+          {permissionStatus === 'granted' ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--success)', fontSize: '13px', fontWeight: '600' }}>
+                <Check size={16} color="var(--success)" strokeWidth={3} /> Notifikasi Diizinkan
+              </div>
+              <p style={styles.pwaStatusDesc}>Momento siap mengirimkan pengingat harian dan flashback ingatan ke perangkat ini.</p>
+              <button onClick={triggerTestNotification} className="btn-secondary" style={styles.pwaTestBtn}>
+                Test Kirim Notifikasi 🧪
+              </button>
+            </div>
+          ) : permissionStatus === 'denied' ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--error)', fontSize: '13px', fontWeight: '600' }}>
+                <X size={16} color="var(--error)" strokeWidth={3} /> Izin Notifikasi Diblokir
+              </div>
+              <p style={styles.pwaStatusDesc}>Momento tidak bisa mengirimkan pengingat karena izin notifikasi dinonaktifkan di browser/HP Anda. Silakan buka pengaturan situs/sistem untuk mengizinkan.</p>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-secondary)', fontSize: '13px', fontWeight: '600' }}>
+                <Info size={16} color="var(--text-secondary)" /> Belum Diaktifkan
+              </div>
+              <p style={styles.pwaStatusDesc}>Izinkan notifikasi sistem agar Anda mendapatkan pengingat menulis jurnal harian dan flashback memori tepat waktu.</p>
+              <button onClick={requestNotificationPermission} className="btn-primary" style={styles.pwaActivateBtn}>
+                Aktifkan Notifikasi Sekarang
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+
       {/* Tombol Logout */}
       <button 
         onClick={signOut}
@@ -821,5 +861,47 @@ const styles = {
     alignItems: 'center',
     justifyContent: 'center',
     gap: '4px',
+  },
+  pwaStatusSection: {
+    padding: '16px 18px',
+    borderRadius: '20px',
+    marginBottom: '20px',
+    borderBottom: 'none',
+    background: 'var(--card-bg)',
+  },
+  pwaStatusHeader: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '10px',
+    marginBottom: '12px',
+    borderBottom: '1px solid var(--border-light)',
+    paddingBottom: '8px',
+  },
+  pwaStatusTitle: {
+    fontSize: '14px',
+    fontWeight: '700',
+    color: 'var(--text-primary)',
+  },
+  pwaStatusBody: {
+    display: 'flex',
+    flexDirection: 'column',
+  },
+  pwaStatusDesc: {
+    fontSize: '12px',
+    color: 'var(--text-secondary)',
+    lineHeight: '1.5',
+    marginBottom: '8px',
+  },
+  pwaTestBtn: {
+    width: 'fit-content',
+    padding: '8px 14px',
+    fontSize: '12px',
+    marginTop: '4px',
+  },
+  pwaActivateBtn: {
+    width: '100%',
+    padding: '12px',
+    fontSize: '13px',
+    marginTop: '4px',
   },
 };

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { PWAProvider, usePWA } from './context/PWAContext';
 import LoginScreen from './features/auth/LoginScreen';
 import HomeScreen from './features/home/HomeScreen';
 import TimelineScreen from './features/timeline/TimelineScreen';
@@ -10,9 +11,9 @@ import { Hourglass, Download, X } from 'lucide-react';
 
 function AppContent() {
   const { user, loading } = useAuth();
+  const { isInstallable, promptInstall } = usePWA();
   const [activeTab, setActiveTab] = useState('home');
-  const [deferredPrompt, setDeferredPrompt] = useState(null);
-  const [showInstallBanner, setShowInstallBanner] = useState(false);
+  const [showInstallBanner, setShowInstallBanner] = useState(true);
 
   // Tema dikelola secara global di App.jsx agar tidak ada bug reset tema saat refresh
   const [theme, setTheme] = useState(() => {
@@ -30,21 +31,6 @@ function AppContent() {
     localStorage.setItem('momento-theme', theme);
   }, [theme]);
 
-  // Listener untuk instalasi PWA
-  useEffect(() => {
-    const handleBeforeInstallPrompt = (e) => {
-      e.preventDefault();
-      setDeferredPrompt(e);
-      setShowInstallBanner(true);
-    };
-
-    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-
-    return () => {
-      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-    };
-  }, []);
-
   // Sinkronisasi kelas layout ke #root (mencegah scroll di halaman login/loading)
   useEffect(() => {
     const rootEl = document.getElementById('root');
@@ -58,15 +44,6 @@ function AppContent() {
     }
   }, [loading, user]);
 
-  const handleInstallClick = async () => {
-    if (!deferredPrompt) return;
-    deferredPrompt.prompt();
-    const { outcome } = await deferredPrompt.userChoice;
-    console.log(`Pilihan user untuk instalasi: ${outcome}`);
-    setDeferredPrompt(null);
-    setShowInstallBanner(false);
-  };
-
   if (loading) {
     return (
       <div style={styles.loadingContainer}>
@@ -79,8 +56,6 @@ function AppContent() {
   if (!user) {
     return <LoginScreen />;
   }
-
-
 
   // Render layar sesuai tab aktif
   const renderScreen = () => {
@@ -101,14 +76,14 @@ function AppContent() {
   return (
     <>
       {/* Banner Kustom untuk Install PWA */}
-      {showInstallBanner && (
+      {isInstallable && showInstallBanner && (
         <div className="glass-panel animate-fade-in" style={styles.installBanner}>
           <div style={styles.installLeft}>
             <Download size={18} color="var(--accent-primary)" />
             <span style={styles.installText}>Pasang Momento di HP Anda!</span>
           </div>
           <div style={styles.installRight}>
-            <button onClick={handleInstallClick} className="btn-primary" style={styles.installBtn}>
+            <button onClick={promptInstall} className="btn-primary" style={styles.installBtn}>
               Pasang
             </button>
             <button onClick={() => setShowInstallBanner(false)} style={styles.dismissBtn}>
@@ -129,7 +104,9 @@ function AppContent() {
 export default function App() {
   return (
     <AuthProvider>
-      <AppContent />
+      <PWAProvider>
+        <AppContent />
+      </PWAProvider>
     </AuthProvider>
   );
 }

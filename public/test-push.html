@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Push Notification - Mesin Waktu</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .card {
+            background: white;
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        button {
+            background: #1a73e8;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            margin: 8px 0;
+            width: 100%;
+        }
+        button:hover {
+            background: #1557b0;
+        }
+        .status {
+            padding: 12px;
+            border-radius: 8px;
+            margin: 16px 0;
+            font-family: monospace;
+            font-size: 12px;
+            word-break: break-all;
+        }
+        .success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .info { background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+        pre {
+            background: #f4f4f4;
+            padding: 12px;
+            border-radius: 8px;
+            overflow-x: auto;
+            font-size: 11px;
+        }
+        h2 { margin-top: 0; }
+        hr { margin: 20px 0; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h2>📨 Test Push Notification</h2>
+        
+        <div id="status" class="status info">⏳ Loading...</div>
+        
+        <button id="subscribeBtn" style="background: #1a73e8;">1️⃣ Subscribe ke Push</button>
+        <button id="testNotifBtn" style="background: #28a745;" disabled>2️⃣ Kirim Test Notification</button>
+        
+        <hr>
+        
+        <h3>📋 Subscription Object (Copy ini ke glitch.me)</h3>
+        <pre id="subscriptionOutput" style="background:#2d2d2d; color:#f8f8f2;">Belum subscribe</pre>
+        
+        <hr>
+        
+        <h3>🔗 Langkah Selanjutnya:</h3>
+        <ol>
+            <li>Klik <strong>"Subscribe ke Push"</strong> dan izinkan notifikasi</li>
+            <li>Copy text JSON di atas</li>
+            <li>Buka <a href="https://web-push-codelab.glitch.me/" target="_blank">web-push-codelab.glitch.me</a></li>
+            <li>Paste JSON ke kolom "Subscription to Send To"</li>
+            <li>Klik <strong>"SEND PUSH MESSAGE"</strong></li>
+            <li>Notifikasi akan muncul! 🎉</li>
+        </ol>
+        
+        <hr>
+        
+        <h3>🎯 Atau Test Langsung (Local Push)</h3>
+        <button id="localPushBtn" style="background: #ff9800;" disabled>Kirim Push dari Localhost</button>
+        <p style="font-size: 12px; color: #666;">* Ini simulasi, butuh backend untuk push beneran</p>
+    </div>
+
+    <script>
+        let currentSubscription = null;
+        let swRegistration = null;
+        
+        const statusDiv = document.getElementById('status');
+        const subscribeBtn = document.getElementById('subscribeBtn');
+        const testNotifBtn = document.getElementById('testNotifBtn');
+        const localPushBtn = document.getElementById('localPushBtn');
+        const subscriptionOutput = document.getElementById('subscriptionOutput');
+        
+        // VAPID Public Key dari glitch.me (yang ini contoh, ganti nanti)
+        // Tapi kita pake yang beneran dari glitch.me aja biar gampang
+        const VAPID_PUBLIC_KEY = 'BEl62iYxuUx6KoKtaO3udZE6pZmgjVZ4KVsxnmQ_JMHIzDzOfFcJLP_6MG-j6zuiP3nFrDzTUTnjxAnvWY93llc';
+        
+        async function registerServiceWorker() {
+            try {
+                if ('serviceWorker' in navigator) {
+                    const registration = await navigator.serviceWorker.register('/sw.js');
+                    console.log('SW registered:', registration);
+                    swRegistration = registration;
+                    
+                    // Cek permission
+                    const permission = Notification.permission;
+                    if (permission === 'granted') {
+                        statusDiv.innerHTML = '✅ Service Worker: RUNNING<br>✅ Notifikasi: DIUZINKAN<br>✅ Siap subscribe!';
+                        statusDiv.className = 'status success';
+                    } else if (permission === 'denied') {
+                        statusDiv.innerHTML = '⚠️ Notifikasi DIBLOKIR. Klik icon 🔒 di samping URL → Allow';
+                        statusDiv.className = 'status error';
+                    } else {
+                        statusDiv.innerHTML = '✅ Service Worker: RUNNING<br>⏳ Klik tombol Subscribe untuk minta izin';
+                        statusDiv.className = 'status info';
+                    }
+                    
+                    return registration;
+                } else {
+                    throw new Error('Service Worker tidak support');
+                }
+            } catch (error) {
+                statusDiv.innerHTML = `❌ Error: ${error.message}`;
+                statusDiv.className = 'status error';
+                return null;
+            }
+        }
+        
+        async function subscribeToPush() {
+            try {
+                const registration = swRegistration || await registerServiceWorker();
+                if (!registration) throw new Error('SW tidak terdaftar');
+                
+                // Minta izin notifikasi dulu
+                let permission = Notification.permission;
+                if (permission !== 'granted') {
+                    permission = await Notification.requestPermission();
+                    if (permission !== 'granted') {
+                        throw new Error('Izin notifikasi ditolak');
+                    }
+                }
+                
+                // Unsubscribe dulu kalau sudah ada
+                const existingSubscription = await registration.pushManager.getSubscription();
+                if (existingSubscription) {
+                    await existingSubscription.unsubscribe();
+                    console.log('Unsubscribed from existing');
+                }
+                
+                // Subscribe baru
+                const subscription = await registration.pushManager.subscribe({
+                    userVisibleOnly: true,
+                    applicationServerKey: VAPID_PUBLIC_KEY
+                });
+                
+                currentSubscription = subscription;
+                
+                // Tampilkan subscription object
+                const subJson = JSON.stringify(subscription, null, 2);
+                subscriptionOutput.textContent = subJson;
+                
+                statusDiv.innerHTML = '✅ Berhasil subscribe! Copy JSON di atas ke glitch.me';
+                statusDiv.className = 'status success';
+                
+                testNotifBtn.disabled = false;
+                localPushBtn.disabled = false;
+                subscribeBtn.textContent = '✅ Subscribed! (Klik untuk ganti)';
+                
+                console.log('Subscription:', subscription);
+                
+                return subscription;
+                
+            } catch (error) {
+                console.error('Subscribe error:', error);
+                statusDiv.innerHTML = `❌ Subscribe gagal: ${error.message}`;
+                statusDiv.className = 'status error';
+                return null;
+            }
+        }
+        
+        function sendTestNotification() {
+            if (!swRegistration) {
+                statusDiv.innerHTML = '❌ SW belum siap. Refresh halaman.';
+                return;
+            }
+            
+            // Test langsung pake Notification API
+            new Notification('✅ Test Notifikasi Berhasil!', {
+                body: 'Kalau lo liat ini, artinya browser support notifikasi.',
+                icon: '/icon-192.png',
+                badge: '/icon-192.png',
+                tag: 'test-notification',
+                requireInteraction: true
+            });
+            
+            statusDiv.innerHTML = '✅ Notifikasi terkirim! Cek layar lo.';
+            setTimeout(() => {
+                statusDiv.innerHTML = '✅ Service Worker: RUNNING<br>✅ Notifikasi: DIUZINKAN<br>✅ Siap subscribe!';
+            }, 3000);
+        }
+        
+        function simulateLocalPush() {
+            statusDiv.innerHTML = '⏳ Mengirim push simulation...';
+            
+            // Ini simulasi lewat service worker
+            if (swRegistration && swRegistration.active) {
+                swRegistration.active.postMessage({
+                    type: 'TEST_PUSH',
+                    title: 'Test Push dari Localhost',
+                    body: 'Kalau lo liat ini, berarti komunikasi SW jalan!'
+                });
+                
+                statusDiv.innerHTML = '✅ Push simulation dikirim ke Service Worker!';
+            } else {
+                statusDiv.innerHTML = '❌ Service Worker tidak aktif';
+            }
+        }
+        
+        // Event listeners
+        subscribeBtn.addEventListener('click', subscribeToPush);
+        testNotifBtn.addEventListener('click', sendTestNotification);
+        localPushBtn.addEventListener('click', simulateLocalPush);
+        
+        // Init
+        registerServiceWorker();
+        
+        // Auto cek subscription on load
+        navigator.serviceWorker.ready.then(reg => {
+            reg.pushManager.getSubscription().then(sub => {
+                if (sub) {
+                    currentSubscription = sub;
+                    subscriptionOutput.textContent = JSON.stringify(sub, null, 2);
+                    testNotifBtn.disabled = false;
+                    localPushBtn.disabled = false;
+                    subscribeBtn.textContent = '✅ Subscribed! (Klik untuk ganti)';
+                    statusDiv.innerHTML = '✅ Sudah subscribe! Copy JSON ke glitch.me';
+                    statusDiv.className = 'status success';
+                }
+            });
+        });
+    </script>
+</body>
+</html>
