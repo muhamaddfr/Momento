@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { usePWA } from '../../context/PWAContext';
+import { useToast } from '../../context/ToastContext';
 import { supabase } from '../../config/supabase';
 import { calculateStreak, stretchPinToPassword } from '../../shared/utils/helpers';
 import { 
@@ -11,6 +12,7 @@ import {
 export default function ProfileScreen({ theme, setTheme }) {
   const { user, signOut } = useAuth();
   const { permissionStatus, requestNotificationPermission, triggerTestNotification } = usePWA();
+  const { showToast } = useToast();
   const [totalEntries, setTotalEntries] = useState(0);
   const [streak, setStreak] = useState(0);
   const [loadingStats, setLoadingStats] = useState(true);
@@ -75,9 +77,10 @@ export default function ProfileScreen({ theme, setTheme }) {
 
       setDisplayName(usernameInput.trim());
       setIsEditingUsername(false);
+      showToast('Username berhasil diperbarui! 👤', 'success');
     } catch (error) {
       console.error('Error updating username:', error.message);
-      alert('Gagal memperbarui username: ' + error.message);
+      showToast('Gagal memperbarui username: ' + error.message, 'error');
     } finally {
       setSavingUsername(false);
     }
@@ -108,9 +111,11 @@ export default function ProfileScreen({ theme, setTheme }) {
       setPinCode(cleanPin);
       setIsSettingPin(false);
       setPinInput('');
+      showToast('PIN Keamanan berhasil diaktifkan! 🔒', 'success');
     } catch (error) {
       console.error('Error saving PIN:', error.message);
       setPinError('Gagal menyimpan PIN: ' + error.message);
+      showToast('Gagal mengaktifkan PIN!', 'error');
     } finally {
       setSavingPin(false);
     }
@@ -133,9 +138,10 @@ export default function ProfileScreen({ theme, setTheme }) {
       setPinCode('');
       setIsSettingPin(false);
       setPinInput('');
+      showToast('PIN Keamanan dinonaktifkan. 🔓', 'success');
     } catch (error) {
       console.error('Error removing PIN:', error.message);
-      alert('Gagal menonaktifkan PIN: ' + error.message);
+      showToast('Gagal menonaktifkan PIN: ' + error.message, 'error');
     } finally {
       setSavingPin(false);
     }
@@ -150,8 +156,10 @@ export default function ProfileScreen({ theme, setTheme }) {
         data: { reminder_time: newTime }
       });
       if (error) throw error;
+      showToast('Waktu pengingat harian diperbarui! ⏰', 'success');
     } catch (error) {
       console.error('Error updating reminder time:', error.message);
+      showToast('Gagal memperbarui waktu pengingat harian.', 'error');
     }
   };
 
@@ -164,8 +172,10 @@ export default function ProfileScreen({ theme, setTheme }) {
         data: { flashback_time: newTime }
       });
       if (error) throw error;
+      showToast('Waktu pengingat flashback diperbarui! 🕰️', 'success');
     } catch (error) {
       console.error('Error updating flashback time:', error.message);
+      showToast('Gagal memperbarui waktu pengingat flashback.', 'error');
     }
   };
 

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { PWAProvider, usePWA } from './context/PWAContext';
+import { ToastProvider } from './context/ToastContext';
 import LoginScreen from './features/auth/LoginScreen';
 import HomeScreen from './features/home/HomeScreen';
 import TimelineScreen from './features/timeline/TimelineScreen';
@@ -105,7 +106,9 @@ export default function App() {
   return (
     <AuthProvider>
       <PWAProvider>
-        <AppContent />
+        <ToastProvider>
+          <AppContent />
+        </ToastProvider>
       </PWAProvider>
     </AuthProvider>
   );

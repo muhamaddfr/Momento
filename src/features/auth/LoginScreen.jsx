@@ -78,15 +78,15 @@ export default function LoginScreen() {
       <div style={styles.logoSection}>
         <div style={styles.logoContainer}>
           <div style={styles.iconWrapper}>
-            <svg xmlns="http://www.w3.org/2000/svg" width="38" height="38" viewBox="0 0 512 512" fill="none">
+            <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 160 160" fill="none">
               <defs>
                 <linearGradient id="logoGrad" x1="0%" y1="0%" x2="100%" y2="100%">
                   <stop offset="0%" stopColor="#c084fc" />
                   <stop offset="100%" stopColor="#818cf8" />
                 </linearGradient>
               </defs>
-              <g transform="translate(64, 64) scale(0.75)">
-                <path d="M20 20 H140 C140 20 140 70 100 80 C140 90 140 140 140 140 H20 C20 140 20 90 60 80 C20 70 20 20 20 20 Z" fill="none" stroke="url(#logoGrad)" strokeWidth="20" strokeLinejoin="round" strokeLinecap="round" />
+              <g>
+                <path d="M20 20 H140 C140 20 140 70 100 80 C140 90 140 140 140 140 H20 C20 140 20 90 60 80 C20 70 20 20 20 20 Z" fill="none" stroke="url(#logoGrad)" strokeWidth="12" strokeLinejoin="round" strokeLinecap="round" />
                 <path d="M36 36 H124 C116 64 100 72 80 72 C60 72 44 64 36 36 Z" fill="url(#logoGrad)" opacity="0.8" />
                 <path d="M44 124 H116 C104 106 96 102 80 102 C64 102 56 106 44 124 Z" fill="url(#logoGrad)" opacity="0.8" />
                 <circle cx="80" cy="88" r="6" fill="#38bdf8" />

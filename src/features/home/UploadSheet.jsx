@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { supabase } from '../../config/supabase';
+import { useToast } from '../../context/ToastContext';
 import { getLocalDateString, compressImage } from '../../shared/utils/helpers';
 import { X, Camera, Smile, Type, Loader, Check } from 'lucide-react';
 
@@ -15,6 +16,7 @@ const MOODS = [
 
 export default function UploadSheet({ isOpen, onClose, onSuccess }) {
   const { user } = useAuth();
+  const { showToast } = useToast();
   const [image, setImage] = useState(null);
   const [imagePreview, setImagePreview] = useState('');
   const [caption, setCaption] = useState('');
@@ -137,6 +139,7 @@ export default function UploadSheet({ isOpen, onClose, onSuccess }) {
       // Tutup sheet dulu, baru trigger refresh — hindari race condition
       handleCloseAfterSuccess();
       onSuccess();
+      showToast('Catatan hari ini berhasil disimpan! ✨', 'success');
     } catch (error) {
       console.error('Error saat menyimpan jurnal harian:', error);
       const detailMsg = error.message || (typeof error === 'string' ? error : JSON.stringify(error));
