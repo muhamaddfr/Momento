@@ -1,15 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { usePWA } from '../../context/PWAContext';
 import { supabase } from '../../config/supabase';
 import { getLocalDateString } from '../../shared/utils/helpers';
 import PhotoCard from '../../shared/widgets/PhotoCard';
 import UploadSheet from './UploadSheet';
-import { Sparkles, CalendarCheck, FileText, ArrowRight, Loader, RefreshCw, Trash2, Bell, Download, CheckCircle, AlertCircle } from 'lucide-react';
+import { Sparkles, CalendarCheck, FileText, ArrowRight, Loader, RefreshCw, Trash2 } from 'lucide-react';
 
 export default function HomeScreen() {
   const { user } = useAuth();
-  const { isInstalled, isInstallable, permissionStatus, requestNotificationPermission, triggerTestNotification, promptInstall } = usePWA();
   const [todayEntry, setTodayEntry] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isUploadOpen, setIsUploadOpen] = useState(false);
@@ -122,78 +120,6 @@ export default function HomeScreen() {
       </header>
       {/* Konten Utama */}
       <div style={styles.mainContent}>
-        {/* Panduan Instalasi PWA & Notifikasi Dinamis */}
-        {(() => {
-          if (!isInstalled) {
-            return (
-              <div className="glass-panel animate-fade-in" style={styles.installGuideCard}>
-                <div style={styles.guideHeader}>
-                  <Bell size={18} color="var(--accent-primary)" style={{ animation: 'bounce 2s infinite' }} />
-                  <span style={styles.guideTitle}>Pasang Aplikasi & Aktifkan Notifikasi</span>
-                </div>
-                <p style={styles.guideText}>
-                  Fitur pengingat harian & flashback membutuhkan Momento untuk diinstal di Layar Utama HP Anda terlebih dahulu:
-                </p>
-                <div style={styles.guideInstruction}>
-                  📱 <strong>iPhone (iOS):</strong> Ketuk tombol <strong>Bagikan [↑]</strong> di Safari, lalu pilih <strong>Tambahkan ke Layar Utama [+]</strong>.<br/>
-                  🤖 <strong>Android / Chrome:</strong> Tekan tombol pasang di bawah ini atau cari banner instalasi browser Anda.
-                </div>
-                {isInstallable && (
-                  <button onClick={promptInstall} className="btn-primary" style={{ marginTop: '8px', padding: '10px', fontSize: '13px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
-                    <Download size={14} /> Pasang Momento Sekarang
-                  </button>
-                )}
-              </div>
-            );
-          }
-
-          if (permissionStatus === 'default') {
-            return (
-              <div className="glass-panel animate-fade-in" style={{ ...styles.installGuideCard, background: 'rgba(245, 158, 11, 0.05)', border: '1px solid rgba(245, 158, 11, 0.2)' }}>
-                <div style={styles.guideHeader}>
-                  <Bell size={18} color="#f59e0b" style={{ animation: 'pulse 1.5s infinite' }} />
-                  <span style={{ ...styles.guideTitle, color: '#f59e0b' }}>Izin Notifikasi Diperlukan</span>
-                </div>
-                <p style={styles.guideText}>
-                  Silakan izinkan notifikasi agar Momento dapat mengirimkan pengingat menulis jurnal harian dan flashback ingatan manis Anda.
-                </p>
-                <button onClick={requestNotificationPermission} className="btn-primary" style={{ marginTop: '8px', padding: '10px', fontSize: '13px', background: 'linear-gradient(135deg, #f59e0b, #d97706)', boxShadow: '0 4px 12px rgba(245, 158, 11, 0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
-                  <CheckCircle size={14} /> Aktifkan Izin Notifikasi
-                </button>
-              </div>
-            );
-          }
-
-          if (permissionStatus === 'denied') {
-            return (
-              <div className="glass-panel animate-fade-in" style={{ ...styles.installGuideCard, background: 'rgba(239, 68, 68, 0.05)', border: '1px solid rgba(239, 68, 68, 0.2)' }}>
-                <div style={styles.guideHeader}>
-                  <AlertCircle size={18} color="var(--error)" />
-                  <span style={{ ...styles.guideTitle, color: 'var(--error)' }}>Izin Notifikasi Ditolak</span>
-                </div>
-                <p style={styles.guideText}>
-                  Pengingat tidak dapat terkirim karena izin diblokir. Silakan buka **Pengaturan Browser / Aplikasi** Anda untuk mengizinkan notifikasi Momento.
-                </p>
-              </div>
-            );
-          }
-
-          // Izin sudah diberikan (granted)
-          return (
-            <div className="glass-panel animate-fade-in" style={{ ...styles.installGuideCard, background: 'rgba(16, 185, 129, 0.05)', border: '1px solid rgba(16, 185, 129, 0.15)' }}>
-              <div style={styles.guideHeader}>
-                <CheckCircle size={18} color="var(--success)" />
-                <span style={{ ...styles.guideTitle, color: 'var(--success)' }}>Notifikasi Pengingat Aktif</span>
-              </div>
-              <p style={styles.guideText}>
-                Sistem pengingat aktif! Notifikasi menulis jurnal harian & flashback akan muncul sesuai jadwal yang Anda atur.
-              </p>
-              <button onClick={triggerTestNotification} className="btn-secondary" style={{ marginTop: '8px', padding: '8px 12px', fontSize: '12px', width: 'fit-content' }}>
-                Test Kirim Notifikasi 🧪
-              </button>
-            </div>
-          );
-        })()}
         {loading ? (
           <div style={styles.loadingWrapper}>
             <Loader size={28} className="animate-spin" color="var(--accent-primary)" />
